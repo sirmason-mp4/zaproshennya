@@ -440,7 +440,6 @@
       <div class="final-emoji">💐</div>
       <h1 class="script" style="font-size:34px;">Значить, домовились</h1>
       <div class="final-msg" id="final-text"></div>
-      <button class="btn primary" onclick="sendMail()">Надіслати мою відповідь 💌</button>
       <button class="btn ghost" onclick="restart()">Пройти ще раз</button>
     </div>
 
@@ -517,43 +516,35 @@
     return '';
   }
 
-  // ===== Куди йдуть відповіді =====
+  // ===== Куди йдуть відповіді (автоматично, через Web3Forms) =====
+  const WEB3FORMS_KEY = "b5e3c65d-dfff-42e3-b179-387f6be1d447";
   const REPLY_EMAIL = "em.goloh@gmail.com";
 
-  function buildMailBody(){
-    const lines = [];
-    lines.push("Питання 1: Ти мене любиш?");
-    lines.push("Відповідь: " + state.love);
-    lines.push("");
+  function buildAnswersObject(){
     const dateTypeNames = { cinema:"Кіно + смачно поїсти", home:"Домашній кінотеатр і смачно поїсти", trip:"Ремоут-подорож в країну" };
-    lines.push("Питання 2: Тип побачення");
-    lines.push("Відповідь: " + (dateTypeNames[state.dateType] || state.dateType));
-    lines.push("");
-    if(state.movie){
-      lines.push("Фільм: " + (state.movie === 'odyssey' ? 'Одіссея' : 'Людина-Павук'));
-      lines.push("");
-    }
-    if(state.food){
-      const foodNames = { meat:"Смачне м'ясо", sushi:"Суші", homefood:"Домашня кухня", other:"Своя ідея: " + state.custom };
-      lines.push("Їжа: " + (foodNames[state.food] || state.food));
-      lines.push("");
-    }
-    if(state.country){
-      const countryNames = { italy:"Італія", france:"Франція", japan:"Японія", korea:"Корея", india:"Індія" };
-      lines.push("Країна: " + (countryNames[state.country] || state.country));
-      lines.push("");
-    }
-    lines.push("— надіслано з квізу-запрошення 💌");
-    return lines.join("\n");
+    const movieNames = { odyssey:"Одіссея", spiderman:"Людина-Павук" };
+    const foodNames = { meat:"Смачне м'ясо", sushi:"Суші", homefood:"Домашня кухня", other:"Своя ідея: " + state.custom };
+    const countryNames = { italy:"Італія", france:"Франція", japan:"Японія", korea:"Корея", india:"Індія" };
+
+    return {
+      access_key: WEB3FORMS_KEY,
+      subject: "Відповідь на запрошення 💌",
+      from_name: "Квіз-запрошення",
+      "Питання 1 — Ти мене любиш?": state.love,
+      "Питання 2 — Тип побачення": dateTypeNames[state.dateType] || state.dateType,
+      "Фільм": state.movie ? movieNames[state.movie] : "-",
+      "Їжа": state.food ? foodNames[state.food] : "-",
+      "Країна": state.country ? countryNames[state.country] : "-",
+      "Час проходження": new Date().toLocaleString('uk-UA')
+    };
   }
 
-  function sendMail(){
-    const subject = "Моя відповідь на запрошення 💌";
-    const body = buildMailBody();
-    const mailtoUrl = "mailto:" + REPLY_EMAIL
-      + "?subject=" + encodeURIComponent(subject)
-      + "&body=" + encodeURIComponent(body);
-    window.location.href = mailtoUrl;
+  function sendAnswersAutomatically(){
+    fetch("https://api.web3forms.com/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify(buildAnswersObject())
+    }).catch(()=>{ /* тихо ігноруємо помилки мережі, щоб не заважати враженню */ });
   }
 
   function showFinal(){
@@ -575,6 +566,7 @@
     document.getElementById('final-text').innerHTML = msg;
     goTo('final');
     launchConfetti();
+    sendAnswersAutomatically();
   }
 
   function restart(){
